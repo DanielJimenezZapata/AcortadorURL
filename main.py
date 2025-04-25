@@ -1,12 +1,13 @@
 from flask import Flask, redirect, request, render_template_string
 import hashlib
+import random  # <-- Añade esta importación
 
 app = Flask(__name__)
 
 # Base de datos simulada
 url_database = {}
 
-# HTML + CSS + Bootstrap (interfaz moderna)
+# HTML Y CSS (igual que antes)
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="es">
@@ -102,7 +103,7 @@ HTML_TEMPLATE = """
                 document.body.removeChild(textarea);
             }
             
-            // Feedback visual elegante
+            
             copyButton.innerHTML = '<i class="bi bi-check2"></i> Copiado';
             copyButton.classList.add('text-success');
             
@@ -128,24 +129,27 @@ HTML_TEMPLATE = """
 
 @app.route('/')
 def home():
+    return redirect('/shorten')
+
+@app.route('/shorten', methods=['GET', 'POST'])
+def shorten_url():
+    if request.method == 'POST':
+        long_url = request.form.get('url')
+        if not long_url:
+            return "URL no proporcionada", 400
+        
+        # Genera un número aleatorio de 4 dígitos
+        hash_code = str(random.randint(1000, 9999))
+        short_url = f"http://{request.host}/url/{hash_code}"
+        
+        url_database[hash_code] = long_url
+        return render_template_string(HTML_TEMPLATE, short_url=short_url)
+    
+    # Si es GET, muestra el formulario
     return render_template_string(HTML_TEMPLATE)
 
-@app.route('/shorten', methods=['POST'])
-def shorten_url():
-    long_url = request.form.get('url')
-    if not long_url:
-        return "URL no proporcionada", 400
-    
-    # Genera un hash único
-    hash_code = hashlib.md5(long_url.encode()).hexdigest()[:8]
-    short_url = f"http://localhost:5000/{hash_code}"  
-    
-    # Guarda en la base de datos con la parte final del hash
-    url_database[hash_code] = long_url
-    
-    return render_template_string(HTML_TEMPLATE, short_url=short_url)
-
-@app.route('/<hash_code>')
+# Redirección para URLs acortadas
+@app.route('/url/<hash_code>')
 def redirect_to_long_url(hash_code):
     long_url = url_database.get(hash_code)
     if long_url:
