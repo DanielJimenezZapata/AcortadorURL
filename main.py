@@ -128,30 +128,6 @@ HTML_TEMPLATE = """
 """
 
 @app.route('/')
-def index():
-    return redirect('/shorten')
-
-@app.route('/shorten', methods=['GET', 'POST'])
-def shorten():
-    short_url = None
-
-    if request.method == 'POST':
-        long_url = request.form.get('url')
-        if not long_url:
-            return "URL no proporcionada", 400
-
-        # Genera un hash único
-        hash_code = hashlib.md5(long_url.encode()).hexdigest()[:8]
-        short_url = f"http://localhost:5000/url/{hash_code}"
-
-        # Guarda en la base de datos
-        url_database[hash_code] = long_url
-
-    return render_template_string(HTML_TEMPLATE, short_url=short_url)
-
-
-"""
-@app.route('/')
 def home():
     return redirect('/shorten')
 
