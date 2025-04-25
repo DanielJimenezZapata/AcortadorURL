@@ -83,12 +83,43 @@ HTML_TEMPLATE = """
     </div>
 
     <script>
-        function copyToClipboard() {
-            const copyText = document.getElementById("short-url");
-            copyText.select();
-            document.execCommand("copy");
-            alert("¡URL copiada!");
+    async function copyToClipboard() {
+        const copyText = document.getElementById("short-url").value;
+        const copyButton = document.querySelector(".btn-outline-secondary");
+        const originalHTML = copyButton.innerHTML;
+        
+        try {
+            // Intentar con la API moderna primero
+            if (navigator.clipboard) {
+                await navigator.clipboard.writeText(copyText);
+            } else {
+                // Fallback para navegadores antiguos
+                const textarea = document.createElement('textarea');
+                textarea.value = copyText;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+            }
+            
+            // Feedback visual elegante
+            copyButton.innerHTML = '<i class="bi bi-check2"></i> Copiado';
+            copyButton.classList.add('text-success');
+            
+            // Restaurar después de 1.5 segundos
+            setTimeout(() => {
+                copyButton.innerHTML = originalHTML;
+                copyButton.classList.remove('text-success');
+            }, 1500);
+            
+        } catch (err) {
+            copyButton.innerHTML = '<i class="bi bi-x"></i> Error';
+            console.error("Error al copiar: ", err);
+            setTimeout(() => {
+                copyButton.innerHTML = originalHTML;
+            }, 1500);
         }
+    }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
@@ -107,14 +138,14 @@ def shorten_url():
     
     # Genera un hash único
     hash_code = hashlib.md5(long_url.encode()).hexdigest()[:8]
-    short_url = f"http://localhost:5000/abc1234/{hash_code}"  
+    short_url = f"http://localhost:5000/{hash_code}"  
     
     # Guarda en la base de datos con la parte final del hash
     url_database[hash_code] = long_url
     
     return render_template_string(HTML_TEMPLATE, short_url=short_url)
 
-@app.route('/abc1234/<hash_code>')
+@app.route('/<hash_code>')
 def redirect_to_long_url(hash_code):
     long_url = url_database.get(hash_code)
     if long_url:
