@@ -1,13 +1,50 @@
 from flask import Flask, redirect, request, render_template_string
-import hashlib
-import random  # <-- Añade esta importación
+import random
+import csv
+from pathlib import Path
+from urllib.parse import urlparse
 
 app = Flask(__name__)
 
-# Base de datos simulada
-url_database = {}
+# Configuración
+CSV_FILE = 'url_database.csv'
+BASE_DOMAIN = "http://localhost:5000"  # HTTP para desarrollo local
 
-# HTML Y CSS (igual que antes)
+# Crear archivo CSV si no existe
+def init_csv():
+    if not Path(CSV_FILE).exists():
+        with open(CSV_FILE, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(['hash_code', 'long_url'])
+
+# Cargar URLs desde CSV
+def load_urls():
+    urls = {}
+    if Path(CSV_FILE).exists():
+        with open(CSV_FILE, 'r') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                urls[row['hash_code']] = row['long_url']
+    return urls
+
+# Guardar nueva URL en CSV
+def save_url(hash_code, long_url):
+    with open(CSV_FILE, 'a', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow([hash_code, long_url])
+
+# Generar hash único de 4 dígitos
+def generate_unique_hash():
+    urls = load_urls()
+    while True:
+        hash_code = str(random.randint(1000, 9999))
+        if hash_code not in urls:
+            return hash_code
+
+# Inicializar CSV al iniciar
+init_csv()
+
+# Plantilla HTML (igual que antes)
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="es">
@@ -79,7 +116,7 @@ HTML_TEMPLATE = """
             </div>
         </div>
         <div class="version-footer">
-            Versión 1.0
+            Versión 2.0 - Persistente y sin errores HTTPS
         </div>
     </div>
 
@@ -90,11 +127,9 @@ HTML_TEMPLATE = """
         const originalHTML = copyButton.innerHTML;
         
         try {
-            // Intentar con la API moderna primero
             if (navigator.clipboard) {
                 await navigator.clipboard.writeText(copyText);
             } else {
-                // Fallback para navegadores antiguos
                 const textarea = document.createElement('textarea');
                 textarea.value = copyText;
                 document.body.appendChild(textarea);
@@ -103,19 +138,16 @@ HTML_TEMPLATE = """
                 document.body.removeChild(textarea);
             }
             
-            
-            copyButton.innerHTML = '<i class="bi bi-check2"></i> Copiado';
+            copyButton.innerHTML = 'Copiado!';
             copyButton.classList.add('text-success');
             
-            // Restaurar después de 1.5 segundos
             setTimeout(() => {
                 copyButton.innerHTML = originalHTML;
                 copyButton.classList.remove('text-success');
             }, 1500);
             
         } catch (err) {
-            copyButton.innerHTML = '<i class="bi bi-x"></i> Error';
-            console.error("Error al copiar: ", err);
+            copyButton.innerHTML = 'Error';
             setTimeout(() => {
                 copyButton.innerHTML = originalHTML;
             }, 1500);
@@ -127,6 +159,7 @@ HTML_TEMPLATE = """
 </html>
 """
 
+# Rutas
 @app.route('/')
 def home():
     return redirect('/shorten')
@@ -138,23 +171,21 @@ def shorten_url():
         if not long_url:
             return "URL no proporcionada", 400
         
-        # Genera un número aleatorio de 4 dígitos
-        hash_code = str(random.randint(1000, 9999))
-        short_url = f"http://{request.host}/url/{hash_code}"
+        hash_code = generate_unique_hash()
+        short_url = f"{BASE_DOMAIN}/url/{hash_code}"
+        save_url(hash_code, long_url)
         
-        url_database[hash_code] = long_url
         return render_template_string(HTML_TEMPLATE, short_url=short_url)
     
-    # Si es GET, muestra el formulario
     return render_template_string(HTML_TEMPLATE)
 
-# Redirección para URLs acortadas
 @app.route('/url/<hash_code>')
 def redirect_to_long_url(hash_code):
-    long_url = url_database.get(hash_code)
+    urls = load_urls()
+    long_url = urls.get(hash_code)
     if long_url:
         return redirect(long_url, code=302)
     return "URL no encontrada", 404
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True)  # Ejecutar en HTTP para desarrollo
