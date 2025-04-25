@@ -1,14 +1,18 @@
+import os
 from flask import Flask, redirect, request, render_template_string
 import random
 import csv
 from pathlib import Path
 from urllib.parse import urlparse
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 
 # Configuración
 CSV_FILE = 'url_database.csv'
-BASE_DOMAIN = "http://localhost:5000"  # HTTP para desarrollo local
+load_dotenv()  # Carga las variables del archivo .env
+
+BASE_DOMAIN = os.getenv('BASE_DOMAIN', 'http://localhost:5000')
 
 # Crear archivo CSV si no existe
 def init_csv():
@@ -116,7 +120,7 @@ HTML_TEMPLATE = """
             </div>
         </div>
         <div class="version-footer">
-            Versión 2.0 - Persistente y sin errores HTTPS
+            Versión 1.0 
         </div>
     </div>
 
