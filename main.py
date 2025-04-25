@@ -43,6 +43,12 @@ HTML_TEMPLATE = """
             padding: 15px;
             margin-top: 20px;
         }
+        .version-footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
@@ -70,6 +76,9 @@ HTML_TEMPLATE = """
                 </div>
                 {% endif %}
             </div>
+        </div>
+        <div class="version-footer">
+            Versión 1.0
         </div>
     </div>
 
